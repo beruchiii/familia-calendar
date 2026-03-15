@@ -372,6 +372,8 @@ body {
 
 .week-day-today {
   border: 2px solid var(--accent);
+  background: var(--accent-light);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .week-day-header {
@@ -522,6 +524,33 @@ body {
   font-size: 10px;
   color: var(--text-secondary);
   font-weight: 600;
+}
+
+.month-cell-selected {
+  background: var(--accent-light) !important;
+  border: 2px solid var(--accent);
+}
+
+.month-day-detail {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.month-detail-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  text-transform: capitalize;
+}
+
+.month-detail-empty {
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: center;
+  padding: 16px 0;
 }
 
 /* ===== EMPTY STATE ===== */

@@ -143,9 +143,7 @@ function App() {
         {view === 'today' && (
           <TodayView
             events={filteredEvents}
-            upcomingEvents={getUpcomingEvents(7).filter(e =>
-              activeFilters.length === 0 || e.members?.some(m => activeFilters.includes(m))
-            )}
+            currentDate={currentDate}
             onEventClick={handleEventClick}
             allCategories={allCategories}
           />
@@ -171,6 +169,8 @@ function App() {
             date={currentDate}
             events={filteredEvents}
             onDayClick={handleDayClick}
+            onEventClick={handleEventClick}
+            allCategories={allCategories}
           />
         )}
       </main>

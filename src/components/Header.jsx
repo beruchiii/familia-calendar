@@ -7,7 +7,7 @@ export default function Header({ view, onViewChange, currentDate, onNavigate, on
     if (view === 'day') return format(currentDate, "EEEE d 'de' MMMM", { locale: es });
     if (view === 'week') return `Semana del ${format(currentDate, "d 'de' MMM", { locale: es })}`;
     if (view === 'month') return format(currentDate, "MMMM yyyy", { locale: es });
-    return 'Hoy';
+    return format(currentDate, "EEEE d 'de' MMMM", { locale: es });
   };
 
   return (

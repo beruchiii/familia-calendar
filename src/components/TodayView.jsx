@@ -4,30 +4,42 @@ import { getMemberById } from '../data/familyConfig';
 import { DEFAULT_CATEGORIES } from '../data/familyConfig';
 import EventCard from './EventCard';
 
-export default function TodayView({ events, upcomingEvents, onEventClick, allCategories }) {
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
-  const todayEvents = events.filter(e => e.date === todayStr);
-  const futureEvents = upcomingEvents.filter(e => e.date > todayStr);
+export default function TodayView({ events, currentDate, onEventClick, allCategories }) {
+  const viewDate = currentDate || new Date();
+  const dateStr = viewDate.toISOString().split('T')[0];
+  const dayEvents = events.filter(e => e.date === dateStr);
+
+  const realToday = new Date().toISOString().split('T')[0];
+  const isRealToday = dateStr === realToday;
+
+  // Get upcoming events (next 7 days from viewDate)
+  const upcoming = [];
+  for (let i = 1; i <= 7; i++) {
+    const d = new Date(viewDate);
+    d.setDate(d.getDate() + i);
+    const dStr = d.toISOString().split('T')[0];
+    const dEvents = events.filter(e => e.date === dStr);
+    upcoming.push(...dEvents);
+  }
 
   return (
     <div className="today-view">
       <div className="today-greeting">
         <h2>
-          {format(today, "EEEE d 'de' MMMM", { locale: es })}
+          {format(viewDate, "EEEE d 'de' MMMM", { locale: es })}
         </h2>
         <p className="today-summary">
-          {todayEvents.length === 0
-            ? 'No hay citas hoy'
-            : `${todayEvents.length} cita${todayEvents.length > 1 ? 's' : ''} hoy`}
+          {dayEvents.length === 0
+            ? `No hay citas ${isRealToday ? 'hoy' : 'este día'}`
+            : `${dayEvents.length} cita${dayEvents.length > 1 ? 's' : ''} ${isRealToday ? 'hoy' : ''}`}
         </p>
       </div>
 
-      {todayEvents.length > 0 && (
+      {dayEvents.length > 0 && (
         <div className="section">
-          <h3 className="section-title">Hoy</h3>
+          <h3 className="section-title">{isRealToday ? 'Hoy' : format(viewDate, "EEEE d", { locale: es })}</h3>
           <div className="events-list">
-            {todayEvents.map(event => (
+            {dayEvents.map(event => (
               <EventCard
                 key={event.id}
                 event={event}
@@ -39,11 +51,11 @@ export default function TodayView({ events, upcomingEvents, onEventClick, allCat
         </div>
       )}
 
-      {futureEvents.length > 0 && (
+      {upcoming.length > 0 && (
         <div className="section">
           <h3 className="section-title">Próximos días</h3>
           <div className="events-list">
-            {futureEvents.map(event => (
+            {upcoming.map(event => (
               <EventCard
                 key={event.id}
                 event={event}
@@ -56,7 +68,7 @@ export default function TodayView({ events, upcomingEvents, onEventClick, allCat
         </div>
       )}
 
-      {todayEvents.length === 0 && futureEvents.length === 0 && (
+      {dayEvents.length === 0 && upcoming.length === 0 && (
         <div className="empty-state">
           <span className="empty-icon">📅</span>
           <p>No hay citas próximas</p>

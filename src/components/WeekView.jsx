@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getMemberById } from '../data/familyConfig';
@@ -5,6 +6,13 @@ import { getMemberById } from '../data/familyConfig';
 export default function WeekView({ date, events, onDayClick, allCategories }) {
   const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Monday
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const todayRef = useRef(null);
+
+  useEffect(() => {
+    if (todayRef.current) {
+      todayRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
 
   return (
     <div className="week-view">
@@ -21,6 +29,7 @@ export default function WeekView({ date, events, onDayClick, allCategories }) {
         return (
           <div
             key={dateStr}
+            ref={isToday(day) ? todayRef : null}
             className={`week-day ${isToday(day) ? 'week-day-today' : ''}`}
             onClick={() => onDayClick(day)}
           >
