@@ -1,8 +1,8 @@
-import { Calendar, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Plus, ChevronLeft, ChevronRight, Sun, Moon } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-export default function Header({ view, onViewChange, currentDate, onNavigate, onNewEvent }) {
+export default function Header({ view, onViewChange, currentDate, onNavigate, onNewEvent, darkMode, onToggleDark }) {
   const getTitle = () => {
     if (view === 'day') return format(currentDate, "EEEE d 'de' MMMM", { locale: es });
     if (view === 'week') return `Semana del ${format(currentDate, "d 'de' MMM", { locale: es })}`;
@@ -17,9 +17,14 @@ export default function Header({ view, onViewChange, currentDate, onNavigate, on
           <Calendar size={24} />
           <span className="header-title">FamiliApp</span>
         </div>
-        <button className="btn-add" onClick={onNewEvent}>
-          <Plus size={20} />
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button className="btn-icon-header" onClick={onToggleDark}>
+            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+          <button className="btn-add" onClick={onNewEvent}>
+            <Plus size={20} />
+          </button>
+        </div>
       </div>
 
       <div className="header-nav">

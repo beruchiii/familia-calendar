@@ -62,6 +62,36 @@ export default function EventDetail({ event, onClose, onEdit, onDelete, allCateg
             </div>
           )}
 
+          {event._isMultiDay && (
+            <div className="detail-row">
+              <span className="detail-label">📆 Varios días</span>
+              <span>{event._multiDayLabel}</span>
+            </div>
+          )}
+
+          {event._isRecurring && (
+            <div className="detail-row">
+              <span className="detail-label">🔄 Repetición</span>
+              <span>{{
+                daily: 'Cada día',
+                weekly: 'Cada semana',
+                biweekly: 'Cada 2 semanas',
+                monthly: 'Cada mes',
+              }[event.recurrence] || event.recurrence}</span>
+            </div>
+          )}
+
+          {event.photos?.length > 0 && (
+            <div className="detail-row">
+              <span className="detail-label">📷 Fotos</span>
+              <div className="detail-photos">
+                {event.photos.map((photo, idx) => (
+                  <img key={idx} src={photo} alt={`Foto ${idx + 1}`} className="detail-photo" />
+                ))}
+              </div>
+            </div>
+          )}
+
           {event.notes && (
             <div className="detail-row detail-notes">
               <span className="detail-label">📝 Notas</span>

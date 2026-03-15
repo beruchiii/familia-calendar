@@ -12,6 +12,7 @@ import GoogleCalendarSync from './components/GoogleCalendarSync';
 import { useEvents } from './hooks/useEvents';
 import { DEFAULT_CATEGORIES } from './data/familyConfig';
 import { isConfigured, createCalendarEvent } from './services/googleCalendar';
+import { useDarkMode } from './hooks/useDarkMode';
 import './App.css';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
   const [editEvent, setEditEvent] = useState(null);
   const [activeFilters, setActiveFilters] = useState([]);
   const [formInitialDate, setFormInitialDate] = useState(null);
+  const [darkMode, toggleDarkMode] = useDarkMode();
 
   const {
     events,
@@ -134,6 +136,8 @@ function App() {
         currentDate={currentDate}
         onNavigate={handleNavigate}
         onNewEvent={handleNewEvent}
+        darkMode={darkMode}
+        onToggleDark={toggleDarkMode}
       />
 
       <GoogleCalendarSync onSyncEvents={handleSyncEvents} />

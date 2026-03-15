@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X, Plus } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { X, Plus, Repeat, CalendarRange, Camera, Trash2 } from 'lucide-react';
 import { FAMILY_MEMBERS, DEFAULT_CATEGORIES } from '../data/familyConfig';
 
 export default function EventForm({ onSubmit, onClose, initialDate, customCategories, onAddCategory, editEvent }) {
@@ -12,8 +12,13 @@ export default function EventForm({ onSubmit, onClose, initialDate, customCatego
     members: editEvent?.members || [],
     category: editEvent?.category || '',
     notes: editEvent?.notes || '',
+    endDate: editEvent?.endDate || '',
+    recurrence: editEvent?.recurrence || 'none',
+    photos: editEvent?.photos || [],
     syncCalendar: editEvent?.syncCalendar ?? true,
   });
+
+  const fileInputRef = useRef(null);
 
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCatName, setNewCatName] = useState('');
@@ -56,7 +61,7 @@ export default function EventForm({ onSubmit, onClose, initialDate, customCatego
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="event-form">
+        <form onSubmit={handleSubmit} className="event-form" autoComplete="off">
           {/* Family Members */}
           <div className="form-section">
             <label className="form-label">¿Para quién?</label>
@@ -89,7 +94,7 @@ export default function EventForm({ onSubmit, onClose, initialDate, customCatego
               placeholder="Revisión, cumple de Lucía..."
               value={form.title}
               onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
-              autoFocus
+              autoComplete="off"
             />
           </div>
 
@@ -112,6 +117,52 @@ export default function EventForm({ onSubmit, onClose, initialDate, customCatego
                 value={form.time}
                 onChange={e => setForm(prev => ({ ...prev, time: e.target.value }))}
               />
+            </div>
+          </div>
+
+          {/* End Date (multi-day) */}
+          <div className="form-section">
+            <label className="form-label">
+              <CalendarRange size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+              Fecha fin (varios días)
+            </label>
+            <input
+              type="date"
+              className="form-input"
+              value={form.endDate}
+              min={form.date}
+              onChange={e => setForm(prev => ({ ...prev, endDate: e.target.value }))}
+            />
+          </div>
+
+          {/* Recurrence */}
+          <div className="form-section">
+            <label className="form-label">
+              <Repeat size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+              Repetir
+            </label>
+            <div className="recurrence-options">
+              {[
+                { value: 'none', label: 'No repetir' },
+                { value: 'daily', label: 'Cada día' },
+                { value: 'weekly', label: 'Cada semana' },
+                { value: 'biweekly', label: 'Cada 2 semanas' },
+                { value: 'monthly', label: 'Cada mes' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={`category-chip ${form.recurrence === opt.value ? 'category-chip-active' : ''}`}
+                  style={form.recurrence === opt.value ? {
+                    backgroundColor: 'var(--accent)',
+                    borderColor: 'var(--accent)',
+                    color: '#fff',
+                  } : {}}
+                  onClick={() => setForm(prev => ({ ...prev, recurrence: opt.value }))}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -168,6 +219,70 @@ export default function EventForm({ onSubmit, onClose, initialDate, customCatego
             )}
           </div>
 
+          {/* Photos */}
+          <div className="form-section">
+            <label className="form-label">Fotos</label>
+            <div className="photo-grid">
+              {form.photos.map((photo, idx) => (
+                <div key={idx} className="photo-thumb">
+                  <img src={photo} alt={`Foto ${idx + 1}`} />
+                  <button
+                    type="button"
+                    className="photo-remove"
+                    onClick={() => setForm(prev => ({
+                      ...prev,
+                      photos: prev.photos.filter((_, i) => i !== idx),
+                    }))}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="photo-add"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Camera size={20} />
+                <span>Añadir</span>
+              </button>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                files.forEach(file => {
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    // Compress image via canvas
+                    const img = new Image();
+                    img.onload = () => {
+                      const canvas = document.createElement('canvas');
+                      const maxSize = 800;
+                      let w = img.width, h = img.height;
+                      if (w > maxSize || h > maxSize) {
+                        if (w > h) { h = (h / w) * maxSize; w = maxSize; }
+                        else { w = (w / h) * maxSize; h = maxSize; }
+                      }
+                      canvas.width = w;
+                      canvas.height = h;
+                      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                      const compressed = canvas.toDataURL('image/jpeg', 0.7);
+                      setForm(prev => ({ ...prev, photos: [...prev.photos, compressed] }));
+                    };
+                    img.src = ev.target.result;
+                  };
+                  reader.readAsDataURL(file);
+                });
+                e.target.value = '';
+              }}
+            />
+          </div>
+
           {/* Notes */}
           <div className="form-section">
             <label className="form-label">Notas</label>
@@ -176,6 +291,7 @@ export default function EventForm({ onSubmit, onClose, initialDate, customCatego
               placeholder="Llevar informes, ir en ayunas..."
               value={form.notes}
               onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
+              autoComplete="off"
             />
           </div>
 

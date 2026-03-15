@@ -13,7 +13,8 @@ export default function EventCard({ event, showDate, onClick, allCategories }) {
       className={`event-card ${isChildEvent ? 'event-card-child' : ''}`}
       style={{
         borderLeftColor: primaryMember?.color || '#6B7280',
-        backgroundColor: primaryMember?.bgColor || '#F9FAFB',
+        '--card-bg-light': primaryMember?.bgColor || '#F9FAFB',
+        '--card-bg-dark': (primaryMember?.color || '#6B7280') + '20',
       }}
       onClick={onClick}
     >
@@ -41,6 +42,8 @@ export default function EventCard({ event, showDate, onClick, allCategories }) {
             {format(new Date(event.date + 'T12:00:00'), "EEE d MMM", { locale: es })}
           </span>
         )}
+        {event._isRecurring && <span className="sync-badge">🔄</span>}
+        {event._isMultiDay && <span className="sync-badge">📆</span>}
         {event.syncCalendar && <span className="sync-badge">📅</span>}
       </div>
 

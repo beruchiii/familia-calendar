@@ -15,7 +15,7 @@ import { getMemberById } from '../data/familyConfig';
 import EventCard from './EventCard';
 
 export default function MonthView({ date, events, onDayClick, onEventClick, allCategories }) {
-  const [selectedDay, setSelectedDay] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(new Date());
 
   const monthStart = startOfMonth(date);
   const monthEnd = endOfMonth(date);

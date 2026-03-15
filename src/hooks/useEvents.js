@@ -1,10 +1,67 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { addDays, addWeeks, addMonths, format } from 'date-fns';
 
 const STORAGE_KEY = 'familia-calendar-events';
 const CATEGORIES_KEY = 'familia-calendar-categories';
 
+// Expand recurring and multi-day events into individual date entries
+function expandEvents(rawEvents) {
+  const expanded = [];
+  const horizon = new Date();
+  horizon.setFullYear(horizon.getFullYear() + 1); // expand 1 year ahead
+  const horizonStr = format(horizon, 'yyyy-MM-dd');
+
+  rawEvents.forEach(event => {
+    // Multi-day event: generate one entry per day in range
+    if (event.endDate && event.endDate > event.date) {
+      let current = new Date(event.date + 'T12:00:00');
+      const end = new Date(event.endDate + 'T12:00:00');
+      while (current <= end) {
+        const dateStr = format(current, 'yyyy-MM-dd');
+        expanded.push({
+          ...event,
+          date: dateStr,
+          _originalDate: event.date,
+          _isMultiDay: true,
+          _multiDayLabel: `${event.date} → ${event.endDate}`,
+        });
+        current = addDays(current, 1);
+      }
+    }
+    // Recurring event
+    else if (event.recurrence && event.recurrence !== 'none') {
+      let current = new Date(event.date + 'T12:00:00');
+      let count = 0;
+      const maxOccurrences = 200;
+
+      while (format(current, 'yyyy-MM-dd') <= horizonStr && count < maxOccurrences) {
+        const dateStr = format(current, 'yyyy-MM-dd');
+        expanded.push({
+          ...event,
+          date: dateStr,
+          _originalDate: event.date,
+          _isRecurring: true,
+        });
+        count++;
+
+        if (event.recurrence === 'daily') current = addDays(current, 1);
+        else if (event.recurrence === 'weekly') current = addWeeks(current, 1);
+        else if (event.recurrence === 'biweekly') current = addWeeks(current, 2);
+        else if (event.recurrence === 'monthly') current = addMonths(current, 1);
+        else break;
+      }
+    }
+    // Normal single event
+    else {
+      expanded.push(event);
+    }
+  });
+
+  return expanded;
+}
+
 export function useEvents() {
-  const [events, setEvents] = useState(() => {
+  const [rawEvents, setRawEvents] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? JSON.parse(saved) : [];
   });
@@ -15,12 +72,15 @@ export function useEvents() {
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
-  }, [events]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rawEvents));
+  }, [rawEvents]);
 
   useEffect(() => {
     localStorage.setItem(CATEGORIES_KEY, JSON.stringify(customCategories));
   }, [customCategories]);
+
+  // Expanded events for display
+  const events = useMemo(() => expandEvents(rawEvents), [rawEvents]);
 
   const addEvent = (event) => {
     const newEvent = {
@@ -28,16 +88,16 @@ export function useEvents() {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2),
       createdAt: new Date().toISOString(),
     };
-    setEvents(prev => [...prev, newEvent]);
+    setRawEvents(prev => [...prev, newEvent]);
     return newEvent;
   };
 
   const updateEvent = (id, updates) => {
-    setEvents(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+    setRawEvents(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
   };
 
   const deleteEvent = (id) => {
-    setEvents(prev => prev.filter(e => e.id !== id));
+    setRawEvents(prev => prev.filter(e => e.id !== id));
   };
 
   const getEventsForDate = (date) => {
