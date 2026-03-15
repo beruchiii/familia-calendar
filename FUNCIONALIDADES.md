@@ -107,18 +107,20 @@ PWA desplegada en Vercel: `familia-calendar.vercel.app`
 
 ---
 
-## Datos y Almacenamiento
-- **localStorage**: todos los datos se guardan en el navegador
-- Eventos: `familia-events`
-- Notas: `familia-notes`
-- Categorias: `familia-categories`
-- Preferencia modo oscuro: `darkMode`
-- No requiere backend ni base de datos
+## Datos y Sincronizacion
+- **Firebase Firestore**: base de datos en la nube (tiempo real)
+- **Sincronizacion entre dispositivos**: todos los miembros de la familia ven los mismos datos
+- Cambios aparecen al instante en todos los dispositivos conectados
+- Migracion automatica de datos locales a Firebase (primera vez)
+- Proyecto Firebase: `familiapp-14ac9` (Plan Spark - gratuito)
+- Servidor en Europa (eur3) para baja latencia
+- Preferencia modo oscuro: `darkMode` (localStorage)
 
 ---
 
 ## Stack Tecnico
-- **React 18** + Vite
+- **React 19** + Vite 8
+- **Firebase Firestore** para sincronizacion en tiempo real
 - **date-fns** para manejo de fechas (locale español)
 - **lucide-react** para iconos
 - **Web Speech API** para transcripcion de voz
