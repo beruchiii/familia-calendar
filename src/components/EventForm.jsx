@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { X, Plus, Repeat, CalendarRange, Camera, Trash2 } from 'lucide-react';
+import { X, Plus, Repeat, CalendarRange, Camera, Trash2, Paperclip, FileText } from 'lucide-react';
 import { FAMILY_MEMBERS, DEFAULT_CATEGORIES } from '../data/familyConfig';
 
 export default function EventForm({ onSubmit, onClose, initialDate, customCategories, onAddCategory, editEvent }) {
@@ -16,10 +16,12 @@ export default function EventForm({ onSubmit, onClose, initialDate, customCatego
     recurrence: editEvent?.recurrence || 'none',
     reminder: editEvent?.reminder || 'none',
     photos: editEvent?.photos || [],
+    documents: editEvent?.documents || [],
     syncCalendar: editEvent?.syncCalendar ?? true,
   });
 
   const fileInputRef = useRef(null);
+  const docInputRef = useRef(null);
 
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCatName, setNewCatName] = useState('');
@@ -307,6 +309,68 @@ export default function EventForm({ onSubmit, onClose, initialDate, customCatego
                       setForm(prev => ({ ...prev, photos: [...prev.photos, compressed] }));
                     };
                     img.src = ev.target.result;
+                  };
+                  reader.readAsDataURL(file);
+                });
+                e.target.value = '';
+              }}
+            />
+          </div>
+
+          {/* Documents */}
+          <div className="form-section">
+            <label className="form-label">Documentos</label>
+            <div className="doc-list">
+              {form.documents.map((doc, idx) => (
+                <div key={idx} className="doc-item">
+                  <FileText size={16} />
+                  <span className="doc-name">{doc.name}</span>
+                  <span className="doc-size">{(doc.size / 1024).toFixed(0)} KB</span>
+                  <button
+                    type="button"
+                    className="doc-remove"
+                    onClick={() => setForm(prev => ({
+                      ...prev,
+                      documents: prev.documents.filter((_, i) => i !== idx),
+                    }))}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="doc-add"
+                onClick={() => docInputRef.current?.click()}
+              >
+                <Paperclip size={16} />
+                <span>Adjuntar documento</span>
+              </button>
+            </div>
+            <input
+              ref={docInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.xls,.xlsx"
+              multiple
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                files.forEach(file => {
+                  if (file.size > 5 * 1024 * 1024) {
+                    alert(`${file.name} es demasiado grande (máx 5MB)`);
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    setForm(prev => ({
+                      ...prev,
+                      documents: [...prev.documents, {
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                        data: ev.target.result,
+                      }],
+                    }));
                   };
                   reader.readAsDataURL(file);
                 });

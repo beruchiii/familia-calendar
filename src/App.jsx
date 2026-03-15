@@ -10,7 +10,9 @@ import EventForm from './components/EventForm';
 import EventDetail from './components/EventDetail';
 import FilterBar from './components/FilterBar';
 import GoogleCalendarSync from './components/GoogleCalendarSync';
+import NotesView from './components/NotesView';
 import { useEvents } from './hooks/useEvents';
+import { useNotes } from './hooks/useNotes';
 import { DEFAULT_CATEGORIES } from './data/familyConfig';
 import { isConfigured, createCalendarEvent } from './services/googleCalendar';
 import { useDarkMode } from './hooks/useDarkMode';
@@ -18,6 +20,7 @@ import { useNotifications } from './hooks/useNotifications';
 import './App.css';
 
 function App() {
+  const [appMode, setAppMode] = useState('calendar'); // 'calendar' | 'notes'
   const [view, setView] = useState('today');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showForm, setShowForm] = useState(false);
@@ -37,6 +40,8 @@ function App() {
     customCategories,
     addCategory,
   } = useEvents();
+
+  const { notes, addNote, updateNote, deleteNote } = useNotes();
 
   useNotifications(events);
 
@@ -156,53 +161,70 @@ function App() {
         onToggleDark={toggleDarkMode}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        appMode={appMode}
+        onAppModeChange={setAppMode}
       />
 
-      <GoogleCalendarSync onSyncEvents={handleSyncEvents} />
-      <FilterBar activeFilters={activeFilters} onToggleFilter={handleToggleFilter} />
+      {appMode === 'calendar' && (
+        <>
+          <GoogleCalendarSync onSyncEvents={handleSyncEvents} />
+          <FilterBar activeFilters={activeFilters} onToggleFilter={handleToggleFilter} />
 
-      <main className="main-content">
-        {view === 'today' && (
-          <TodayView
-            events={filteredEvents}
-            currentDate={currentDate}
-            onEventClick={handleEventClick}
-            allCategories={allCategories}
+          <main className="main-content">
+            {view === 'today' && (
+              <TodayView
+                events={filteredEvents}
+                currentDate={currentDate}
+                onEventClick={handleEventClick}
+                allCategories={allCategories}
+              />
+            )}
+            {view === 'day' && (
+              <DayView
+                date={currentDate}
+                events={filteredEvents}
+                onEventClick={handleEventClick}
+                allCategories={allCategories}
+              />
+            )}
+            {view === 'week' && (
+              <WeekView
+                date={currentDate}
+                events={filteredEvents}
+                onDayClick={handleDayClick}
+                allCategories={allCategories}
+              />
+            )}
+            {view === 'month' && (
+              <MonthView
+                date={currentDate}
+                events={filteredEvents}
+                onDayClick={handleDayClick}
+                onEventClick={handleEventClick}
+                allCategories={allCategories}
+              />
+            )}
+            {view === 'agenda' && (
+              <AgendaView
+                events={filteredEvents}
+                onEventClick={handleEventClick}
+                allCategories={allCategories}
+              />
+            )}
+          </main>
+        </>
+      )}
+
+      {appMode === 'notes' && (
+        <main className="main-content">
+          <NotesView
+            notes={notes}
+            onAdd={addNote}
+            onUpdate={updateNote}
+            onDelete={deleteNote}
           />
-        )}
-        {view === 'day' && (
-          <DayView
-            date={currentDate}
-            events={filteredEvents}
-            onEventClick={handleEventClick}
-            allCategories={allCategories}
-          />
-        )}
-        {view === 'week' && (
-          <WeekView
-            date={currentDate}
-            events={filteredEvents}
-            onDayClick={handleDayClick}
-            allCategories={allCategories}
-          />
-        )}
-        {view === 'month' && (
-          <MonthView
-            date={currentDate}
-            events={filteredEvents}
-            onDayClick={handleDayClick}
-            onEventClick={handleEventClick}
-            allCategories={allCategories}
-          />
-        )}
-        {view === 'agenda' && (
-          <AgendaView
-            events={filteredEvents}
-            onEventClick={handleEventClick}
-            allCategories={allCategories}
-          />
-        )}
-      </main>
+        </main>
+      )}
 
       {showForm && (
         <EventForm

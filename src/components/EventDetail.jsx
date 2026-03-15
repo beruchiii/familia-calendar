@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { X, Pencil, Trash2 } from 'lucide-react';
+import { X, Pencil, Trash2, FileText, Download } from 'lucide-react';
 import { getMemberById } from '../data/familyConfig';
 
 export default function EventDetail({ event, onClose, onEdit, onDelete, allCategories }) {
@@ -87,6 +87,26 @@ export default function EventDetail({ event, onClose, onEdit, onDelete, allCateg
               <div className="detail-photos">
                 {event.photos.map((photo, idx) => (
                   <img key={idx} src={photo} alt={`Foto ${idx + 1}`} className="detail-photo" />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {event.documents?.length > 0 && (
+            <div className="detail-row">
+              <span className="detail-label">📎 Documentos</span>
+              <div className="detail-docs">
+                {event.documents.map((doc, idx) => (
+                  <a
+                    key={idx}
+                    href={doc.data}
+                    download={doc.name}
+                    className="detail-doc-item"
+                  >
+                    <FileText size={16} />
+                    <span className="doc-name">{doc.name}</span>
+                    <Download size={14} />
+                  </a>
                 ))}
               </div>
             </div>
