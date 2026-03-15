@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
 import { addDays, addWeeks, addMonths } from 'date-fns';
 import Header from './components/Header';
+import SplashScreen from './components/SplashScreen';
+import DailySummary from './components/DailySummary';
 import TodayView from './components/TodayView';
 import DayView from './components/DayView';
 import WeekView from './components/WeekView';
@@ -20,6 +22,12 @@ import { useNotifications } from './hooks/useNotifications';
 import './App.css';
 
 function App() {
+  const [showSplash, setShowSplash] = useState(() => {
+    // Show splash only once per session
+    if (sessionStorage.getItem('splash-shown')) return false;
+    sessionStorage.setItem('splash-shown', '1');
+    return true;
+  });
   const [appMode, setAppMode] = useState('calendar'); // 'calendar' | 'notes'
   const [view, setView] = useState('today');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -149,6 +157,10 @@ function App() {
     }
   };
 
+  if (showSplash) {
+    return <SplashScreen onDone={() => setShowSplash(false)} />;
+  }
+
   return (
     <div className="app">
       <Header
@@ -171,6 +183,13 @@ function App() {
           <FilterBar activeFilters={activeFilters} onToggleFilter={handleToggleFilter} />
 
           <main className="main-content">
+            {view === 'today' && (
+              <DailySummary
+                events={events}
+                notes={notes}
+                onGoToNotes={() => setAppMode('notes')}
+              />
+            )}
             {view === 'today' && (
               <TodayView
                 events={filteredEvents}
