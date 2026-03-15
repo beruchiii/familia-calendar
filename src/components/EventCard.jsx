@@ -15,6 +15,9 @@ export default function EventCard({ event, showDate, onClick, allCategories }) {
         borderLeftColor: primaryMember?.color || '#6B7280',
         '--card-bg-light': primaryMember?.bgColor || '#F9FAFB',
         '--card-bg-dark': (primaryMember?.color || '#6B7280') + '20',
+        borderTopColor: category?.color || 'transparent',
+        borderTopWidth: category ? '3px' : '0',
+        borderTopStyle: 'solid',
       }}
       onClick={onClick}
     >

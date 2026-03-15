@@ -14,6 +14,7 @@ export default function EventForm({ onSubmit, onClose, initialDate, customCatego
     notes: editEvent?.notes || '',
     endDate: editEvent?.endDate || '',
     recurrence: editEvent?.recurrence || 'none',
+    reminder: editEvent?.reminder || 'none',
     photos: editEvent?.photos || [],
     syncCalendar: editEvent?.syncCalendar ?? true,
   });
@@ -159,6 +160,37 @@ export default function EventForm({ onSubmit, onClose, initialDate, customCatego
                     color: '#fff',
                   } : {}}
                   onClick={() => setForm(prev => ({ ...prev, recurrence: opt.value }))}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Reminder */}
+          <div className="form-section">
+            <label className="form-label">
+              🔔 Recordatorio
+            </label>
+            <div className="recurrence-options">
+              {[
+                { value: 'none', label: 'Sin aviso' },
+                { value: '5', label: '5 min' },
+                { value: '15', label: '15 min' },
+                { value: '30', label: '30 min' },
+                { value: '60', label: '1 hora' },
+                { value: '1440', label: '1 día' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={`category-chip ${form.reminder === opt.value ? 'category-chip-active' : ''}`}
+                  style={form.reminder === opt.value ? {
+                    backgroundColor: 'var(--accent)',
+                    borderColor: 'var(--accent)',
+                    color: '#fff',
+                  } : {}}
+                  onClick={() => setForm(prev => ({ ...prev, reminder: opt.value }))}
                 >
                   {opt.label}
                 </button>

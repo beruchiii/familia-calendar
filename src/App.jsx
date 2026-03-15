@@ -5,6 +5,7 @@ import TodayView from './components/TodayView';
 import DayView from './components/DayView';
 import WeekView from './components/WeekView';
 import MonthView from './components/MonthView';
+import AgendaView from './components/AgendaView';
 import EventForm from './components/EventForm';
 import EventDetail from './components/EventDetail';
 import FilterBar from './components/FilterBar';
@@ -13,6 +14,7 @@ import { useEvents } from './hooks/useEvents';
 import { DEFAULT_CATEGORIES } from './data/familyConfig';
 import { isConfigured, createCalendarEvent } from './services/googleCalendar';
 import { useDarkMode } from './hooks/useDarkMode';
+import { useNotifications } from './hooks/useNotifications';
 import './App.css';
 
 function App() {
@@ -23,6 +25,7 @@ function App() {
   const [editEvent, setEditEvent] = useState(null);
   const [activeFilters, setActiveFilters] = useState([]);
   const [formInitialDate, setFormInitialDate] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [darkMode, toggleDarkMode] = useDarkMode();
 
   const {
@@ -35,17 +38,30 @@ function App() {
     addCategory,
   } = useEvents();
 
+  useNotifications(events);
+
   const allCategories = useMemo(
     () => [...DEFAULT_CATEGORIES, ...customCategories],
     [customCategories]
   );
 
   const filteredEvents = useMemo(() => {
-    if (activeFilters.length === 0) return events;
-    return events.filter(e =>
-      e.members?.some(m => activeFilters.includes(m))
-    );
-  }, [events, activeFilters]);
+    let filtered = events;
+    if (activeFilters.length > 0) {
+      filtered = filtered.filter(e =>
+        e.members?.some(m => activeFilters.includes(m))
+      );
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(e =>
+        e.title?.toLowerCase().includes(q) ||
+        e.notes?.toLowerCase().includes(q) ||
+        allCategories.find(c => c.id === e.category)?.name.toLowerCase().includes(q)
+      );
+    }
+    return filtered;
+  }, [events, activeFilters, searchQuery, allCategories]);
 
   const handleNavigate = (direction) => {
     setCurrentDate(prev => {
@@ -138,6 +154,8 @@ function App() {
         onNewEvent={handleNewEvent}
         darkMode={darkMode}
         onToggleDark={toggleDarkMode}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
       />
 
       <GoogleCalendarSync onSyncEvents={handleSyncEvents} />
@@ -173,6 +191,13 @@ function App() {
             date={currentDate}
             events={filteredEvents}
             onDayClick={handleDayClick}
+            onEventClick={handleEventClick}
+            allCategories={allCategories}
+          />
+        )}
+        {view === 'agenda' && (
+          <AgendaView
+            events={filteredEvents}
             onEventClick={handleEventClick}
             allCategories={allCategories}
           />
