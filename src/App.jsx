@@ -12,8 +12,12 @@ import EventDetail from './components/EventDetail';
 import FilterBar from './components/FilterBar';
 import GoogleCalendarSync from './components/GoogleCalendarSync';
 import NotesView from './components/NotesView';
+import ShoppingList from './components/ShoppingList';
+import BirthdaySection from './components/BirthdaySection';
 import { useEvents } from './hooks/useEvents';
 import { useNotes } from './hooks/useNotes';
+import { useShoppingList } from './hooks/useShoppingList';
+import { useBirthdays } from './hooks/useBirthdays';
 import { DEFAULT_CATEGORIES } from './data/familyConfig';
 import { isConfigured, createCalendarEvent } from './services/googleCalendar';
 import { useDarkMode } from './hooks/useDarkMode';
@@ -27,7 +31,7 @@ function App() {
     sessionStorage.setItem('splash-shown', '1');
     return true;
   });
-  const [appMode, setAppMode] = useState('calendar'); // 'calendar' | 'notes'
+  const [appMode, setAppMode] = useState('calendar'); // 'calendar' | 'notes' | 'shopping'
   const [view, setView] = useState('today');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showForm, setShowForm] = useState(false);
@@ -37,6 +41,7 @@ function App() {
   const [formInitialDate, setFormInitialDate] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [darkMode, toggleDarkMode] = useDarkMode();
+  const [showBirthdays, setShowBirthdays] = useState(false);
 
   const {
     events,
@@ -49,6 +54,8 @@ function App() {
   } = useEvents();
 
   const { notes, addNote, updateNote, deleteNote } = useNotes();
+  const { birthdays, addBirthday, updateBirthday, deleteBirthday } = useBirthdays();
+  const { items: shoppingItems, addItem: addShoppingItem, toggleItem: toggleShoppingItem, deleteItem: deleteShoppingItem, clearCompleted: clearShoppingCompleted } = useShoppingList();
 
   useNotifications(events);
 
@@ -174,6 +181,7 @@ function App() {
         onSearchChange={setSearchQuery}
         appMode={appMode}
         onAppModeChange={setAppMode}
+        onShowBirthdays={() => setShowBirthdays(true)}
       />
 
       {appMode === 'calendar' && (
@@ -188,6 +196,7 @@ function App() {
                 currentDate={currentDate}
                 onEventClick={handleEventClick}
                 allCategories={allCategories}
+                birthdays={birthdays}
               />
             )}
             {view === 'day' && (
@@ -237,6 +246,18 @@ function App() {
         </main>
       )}
 
+      {appMode === 'shopping' && (
+        <main className="main-content">
+          <ShoppingList
+            items={shoppingItems}
+            onAdd={addShoppingItem}
+            onToggle={toggleShoppingItem}
+            onDelete={deleteShoppingItem}
+            onClearCompleted={clearShoppingCompleted}
+          />
+        </main>
+      )}
+
       {showForm && (
         <EventForm
           onSubmit={handleSubmitEvent}
@@ -255,6 +276,16 @@ function App() {
           onEdit={handleEditEvent}
           onDelete={handleDeleteEvent}
           allCategories={allCategories}
+        />
+      )}
+
+      {showBirthdays && (
+        <BirthdaySection
+          birthdays={birthdays}
+          addBirthday={addBirthday}
+          updateBirthday={updateBirthday}
+          deleteBirthday={deleteBirthday}
+          onClose={() => setShowBirthdays(false)}
         />
       )}
     </div>

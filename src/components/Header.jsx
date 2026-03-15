@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Calendar, Plus, ChevronLeft, ChevronRight, Sun, Moon, Search, X, StickyNote } from 'lucide-react';
+import { Calendar, Plus, ChevronLeft, ChevronRight, Sun, Moon, Search, X, StickyNote, ShoppingCart, Cake } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-export default function Header({ view, onViewChange, currentDate, onNavigate, onNewEvent, darkMode, onToggleDark, searchQuery, onSearchChange, appMode, onAppModeChange }) {
+export default function Header({ view, onViewChange, currentDate, onNavigate, onNewEvent, darkMode, onToggleDark, searchQuery, onSearchChange, appMode, onAppModeChange, onShowBirthdays }) {
   const [showSearch, setShowSearch] = useState(false);
 
   const getTitle = () => {
@@ -33,6 +33,13 @@ export default function Header({ view, onViewChange, currentDate, onNavigate, on
               <StickyNote size={18} />
               <span>Notas</span>
             </button>
+            <button
+              className={`app-switch-btn ${appMode === 'shopping' ? 'app-switch-active' : ''}`}
+              onClick={() => onAppModeChange('shopping')}
+            >
+              <ShoppingCart size={18} />
+              <span>Lista</span>
+            </button>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -41,6 +48,9 @@ export default function Header({ view, onViewChange, currentDate, onNavigate, on
               {showSearch ? <X size={20} /> : <Search size={20} />}
             </button>
           )}
+          <button className="btn-icon-header" onClick={onShowBirthdays} title="Cumpleaños">
+            <Cake size={20} />
+          </button>
           <button className="btn-icon-header" onClick={onToggleDark}>
             {darkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
