@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Plus, Trash2, ChevronLeft, Pin, PinOff, Camera, Paperclip, Mic, MicOff, Search, X, Square, CheckSquare, FileText, Image, Play, Pause } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, Pin, PinOff, Camera, Paperclip, Mic, MicOff, Search, X, Square, CheckSquare, FileText, Image, Play, Pause, Type } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { FAMILY_MEMBERS } from '../data/familyConfig';
@@ -15,9 +15,10 @@ const NOTE_COLORS = [
 
 const SPEEDS = [1, 1.5, 2];
 
-function AudioPlayer({ src }) {
+function AudioPlayer({ src, transcript }) {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const [showTranscript, setShowTranscript] = useState(false);
   const audioRef = useRef(null);
 
   const toggle = (e) => {
@@ -45,23 +46,39 @@ function AudioPlayer({ src }) {
   };
 
   return (
-    <div className="note-audio-player" onClick={e => e.stopPropagation()}>
-      <audio
-        ref={audioRef}
-        src={src}
-        preload="auto"
-        onEnded={() => setPlaying(false)}
-        onPause={() => setPlaying(false)}
-        onPlay={() => setPlaying(true)}
-        onError={() => setPlaying(false)}
-      />
-      <button className="audio-play-btn" onClick={toggle}>
-        {playing ? <Pause size={14} /> : <Play size={14} />}
-      </button>
-      <span className="audio-label">Nota de voz</span>
-      <button className="audio-speed-btn" onClick={cycleSpeed}>
-        {speed}x
-      </button>
+    <div className="note-audio-player-wrap" onClick={e => e.stopPropagation()}>
+      <div className="note-audio-player">
+        <audio
+          ref={audioRef}
+          src={src}
+          preload="auto"
+          onEnded={() => setPlaying(false)}
+          onPause={() => setPlaying(false)}
+          onPlay={() => setPlaying(true)}
+          onError={() => setPlaying(false)}
+        />
+        <button className="audio-play-btn" onClick={toggle}>
+          {playing ? <Pause size={14} /> : <Play size={14} />}
+        </button>
+        <span className="audio-label">Nota de voz</span>
+        <button className="audio-speed-btn" onClick={cycleSpeed}>
+          {speed}x
+        </button>
+        {transcript && (
+          <button
+            className="audio-transcript-btn"
+            onClick={(e) => { e.stopPropagation(); setShowTranscript(s => !s); }}
+            title="Ver transcripción"
+          >
+            <Type size={14} />
+          </button>
+        )}
+      </div>
+      {showTranscript && transcript && (
+        <div className="audio-transcript">
+          <p>{transcript}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -81,6 +98,8 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
   const [recording, setRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
+  const speechRecRef = useRef(null);
+  const transcriptRef = useRef('');
   const photoInputRef = useRef(null);
   const docInputRef = useRef(null);
 
@@ -210,11 +229,10 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
     }));
   };
 
-  // Audio recording
+  // Audio recording with speech-to-text
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Pick a supported mime type
       const mimeType = ['audio/mp4', 'audio/webm', 'audio/ogg'].find(
         t => MediaRecorder.isTypeSupported(t)
       ) || '';
@@ -223,12 +241,40 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
       const actualMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
+      transcriptRef.current = '';
+
+      // Start speech recognition if available
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRec) {
+        const recognition = new SpeechRec();
+        recognition.lang = 'es-ES';
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.onresult = (event) => {
+          let text = '';
+          for (let i = 0; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+              text += event.results[i][0].transcript + ' ';
+            }
+          }
+          transcriptRef.current = text.trim();
+        };
+        recognition.onerror = () => {}; // Silently ignore
+        recognition.start();
+        speechRecRef.current = recognition;
+      }
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
 
       mediaRecorder.onstop = () => {
+        // Stop speech recognition
+        if (speechRecRef.current) {
+          try { speechRecRef.current.stop(); } catch {}
+          speechRecRef.current = null;
+        }
+        const transcript = transcriptRef.current || '';
         const blob = new Blob(chunksRef.current, { type: actualMime });
         const reader = new FileReader();
         reader.onload = (ev) => {
@@ -238,6 +284,7 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
               data: ev.target.result,
               duration: Math.round((Date.now() - recordStartRef.current) / 1000),
               createdAt: new Date().toISOString(),
+              transcript: transcript || undefined,
             }],
           }));
         };
@@ -258,6 +305,9 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
   const stopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
+    }
+    if (speechRecRef.current) {
+      try { speechRecRef.current.stop(); } catch {}
     }
     setRecording(false);
   };
@@ -444,7 +494,7 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
           <div className="note-attachments">
             {form.audios.map((audio, idx) => (
               <div key={idx} className="note-audio-item">
-                <AudioPlayer src={audio.data} />
+                <AudioPlayer src={audio.data} transcript={audio.transcript} />
                 <span className="audio-duration">{audio.duration}s</span>
                 <button
                   className="checklist-remove"

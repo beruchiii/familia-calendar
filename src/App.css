@@ -1650,6 +1650,40 @@ body {
   color: var(--accent);
 }
 
+.audio-transcript-btn {
+  padding: 2px 6px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+}
+
+.audio-transcript-btn:active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.note-audio-player-wrap {
+  width: 100%;
+}
+
+.audio-transcript {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  font-style: italic;
+}
+
 .audio-duration {
   font-size: 12px;
   color: var(--text-secondary);
