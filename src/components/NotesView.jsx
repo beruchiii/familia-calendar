@@ -521,33 +521,15 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
         {form.audios.length > 0 && (
           <div className="note-attachments">
             {form.audios.map((audio, idx) => (
-              <div key={idx} className="note-audio-item-wrap">
-                <div className="note-audio-item">
-                  <AudioPlayer src={audio.data} transcript={audio.transcript} />
-                  <span className="audio-duration">{audio.duration}s</span>
-                  <button
-                    className="checklist-remove"
-                    onClick={() => setForm(prev => ({ ...prev, audios: prev.audios.filter((_, i) => i !== idx) }))}
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  className="form-input audio-transcript-input"
-                  placeholder="Escribe la transcripción del audio..."
-                  value={audio.transcript || ''}
-                  onChange={e => {
-                    const newTranscript = e.target.value;
-                    setForm(prev => ({
-                      ...prev,
-                      audios: prev.audios.map((a, i) =>
-                        i === idx ? { ...a, transcript: newTranscript || undefined } : a
-                      ),
-                    }));
-                  }}
-                  autoComplete="off"
-                />
+              <div key={idx} className="note-audio-item">
+                <AudioPlayer src={audio.data} transcript={audio.transcript} />
+                <span className="audio-duration">{audio.duration}s</span>
+                <button
+                  className="checklist-remove"
+                  onClick={() => setForm(prev => ({ ...prev, audios: prev.audios.filter((_, i) => i !== idx) }))}
+                >
+                  <X size={14} />
+                </button>
               </div>
             ))}
           </div>
