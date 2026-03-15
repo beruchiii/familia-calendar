@@ -230,9 +230,13 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
   };
 
   // Audio recording with speech-to-text
+  const streamRef = useRef(null);
+  const recordStartRef = useRef(0);
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
       const mimeType = ['audio/mp4', 'audio/webm', 'audio/ogg'].find(
         t => MediaRecorder.isTypeSupported(t)
       ) || '';
@@ -243,25 +247,35 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
       chunksRef.current = [];
       transcriptRef.current = '';
 
-      // Start speech recognition if available
-      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRec) {
-        const recognition = new SpeechRec();
-        recognition.lang = 'es-ES';
-        recognition.continuous = true;
-        recognition.interimResults = false;
-        recognition.onresult = (event) => {
-          let text = '';
-          for (let i = 0; i < event.results.length; i++) {
-            if (event.results[i].isFinal) {
-              text += event.results[i][0].transcript + ' ';
+      // Start speech recognition if available (non-blocking)
+      try {
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRec) {
+          const recognition = new SpeechRec();
+          recognition.lang = 'es-ES';
+          recognition.continuous = true;
+          recognition.interimResults = false;
+          recognition.onresult = (event) => {
+            let text = '';
+            for (let i = 0; i < event.results.length; i++) {
+              if (event.results[i].isFinal) {
+                text += event.results[i][0].transcript + ' ';
+              }
             }
-          }
-          transcriptRef.current = text.trim();
-        };
-        recognition.onerror = () => {}; // Silently ignore
-        recognition.start();
-        speechRecRef.current = recognition;
+            transcriptRef.current = text.trim();
+          };
+          recognition.onerror = () => {
+            speechRecRef.current = null;
+          };
+          recognition.onend = () => {
+            speechRecRef.current = null;
+          };
+          recognition.start();
+          speechRecRef.current = recognition;
+        }
+      } catch {
+        // Speech recognition not available, continue without it
+        speechRecRef.current = null;
       }
 
       mediaRecorder.ondataavailable = (e) => {
@@ -289,7 +303,9 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
           }));
         };
         reader.readAsDataURL(blob);
+        // Stop all tracks
         stream.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
       };
 
       recordStartRef.current = Date.now();
@@ -300,16 +316,28 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
     }
   };
 
-  const recordStartRef = useRef(0);
-
   const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
+    setRecording(false);
+    // Stop speech recognition first
     if (speechRecRef.current) {
       try { speechRecRef.current.stop(); } catch {}
+      speechRecRef.current = null;
     }
-    setRecording(false);
+    // Stop media recorder
+    if (mediaRecorderRef.current) {
+      try {
+        if (mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop();
+        }
+      } catch {
+        // Force cleanup if stop fails
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(t => t.stop());
+          streamRef.current = null;
+        }
+      }
+      mediaRecorderRef.current = null;
+    }
   };
 
   // Photo handling
