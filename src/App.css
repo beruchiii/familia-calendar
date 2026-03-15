@@ -1690,6 +1690,42 @@ body {
   margin-left: auto;
 }
 
+.note-audio-item-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.audio-transcript-input {
+  font-size: 13px !important;
+  padding: 8px 12px !important;
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.audio-transcript-input::placeholder {
+  font-style: italic;
+}
+
+.btn-save-big {
+  width: 100%;
+  padding: 14px;
+  margin-top: 16px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-save-big:active {
+  background: #2563EB;
+}
+
 /* Note Card extras */
 .note-card-photo {
   margin-top: 8px;

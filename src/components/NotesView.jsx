@@ -521,15 +521,33 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
         {form.audios.length > 0 && (
           <div className="note-attachments">
             {form.audios.map((audio, idx) => (
-              <div key={idx} className="note-audio-item">
-                <AudioPlayer src={audio.data} transcript={audio.transcript} />
-                <span className="audio-duration">{audio.duration}s</span>
-                <button
-                  className="checklist-remove"
-                  onClick={() => setForm(prev => ({ ...prev, audios: prev.audios.filter((_, i) => i !== idx) }))}
-                >
-                  <X size={14} />
-                </button>
+              <div key={idx} className="note-audio-item-wrap">
+                <div className="note-audio-item">
+                  <AudioPlayer src={audio.data} transcript={audio.transcript} />
+                  <span className="audio-duration">{audio.duration}s</span>
+                  <button
+                    className="checklist-remove"
+                    onClick={() => setForm(prev => ({ ...prev, audios: prev.audios.filter((_, i) => i !== idx) }))}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  className="form-input audio-transcript-input"
+                  placeholder="Escribe la transcripción del audio..."
+                  value={audio.transcript || ''}
+                  onChange={e => {
+                    const newTranscript = e.target.value;
+                    setForm(prev => ({
+                      ...prev,
+                      audios: prev.audios.map((a, i) =>
+                        i === idx ? { ...a, transcript: newTranscript || undefined } : a
+                      ),
+                    }));
+                  }}
+                  autoComplete="off"
+                />
               </div>
             ))}
           </div>
@@ -574,6 +592,10 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
             <CheckSquare size={20} />
           </button>
         </div>
+
+        <button className="btn-save-big" onClick={handleSave}>
+          Guardar nota
+        </button>
 
         <input ref={photoInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handlePhotos} />
         <input ref={docInputRef} type="file" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx" multiple style={{ display: 'none' }} onChange={handleDocs} />
@@ -729,7 +751,7 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
                     <span className="note-check-count">{checkDone}/{checklist.length}</span>
                   )}
                   <span className="note-card-date">
-                    {format(new Date(note.updatedAt), "d MMM", { locale: es })}
+                    {format(new Date(note.updatedAt), "d MMM HH:mm", { locale: es })}
                   </span>
                 </div>
               </div>
