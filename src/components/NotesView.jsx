@@ -19,13 +19,18 @@ function AudioPlayer({ src }) {
 
   const toggle = (e) => {
     e.stopPropagation();
-    if (!audioRef.current) return;
+    const audio = audioRef.current;
+    if (!audio) return;
     if (playing) {
-      audioRef.current.pause();
+      audio.pause();
+      setPlaying(false);
     } else {
-      audioRef.current.play();
+      // Reset to start if ended
+      if (audio.ended) audio.currentTime = 0;
+      audio.play()
+        .then(() => setPlaying(true))
+        .catch(() => setPlaying(false));
     }
-    setPlaying(!playing);
   };
 
   return (
@@ -33,7 +38,11 @@ function AudioPlayer({ src }) {
       <audio
         ref={audioRef}
         src={src}
+        preload="auto"
         onEnded={() => setPlaying(false)}
+        onPause={() => setPlaying(false)}
+        onPlay={() => setPlaying(true)}
+        onError={() => setPlaying(false)}
       />
       <button className="audio-play-btn" onClick={toggle}>
         {playing ? <Pause size={14} /> : <Play size={14} />}
@@ -160,7 +169,13 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      // Pick a supported mime type
+      const mimeType = ['audio/mp4', 'audio/webm', 'audio/ogg'].find(
+        t => MediaRecorder.isTypeSupported(t)
+      ) || '';
+      const options = mimeType ? { mimeType } : {};
+      const mediaRecorder = new MediaRecorder(stream, options);
+      const actualMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -169,7 +184,7 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(chunksRef.current, { type: actualMime });
         const reader = new FileReader();
         reader.onload = (ev) => {
           setForm(prev => ({
