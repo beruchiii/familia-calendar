@@ -13,8 +13,11 @@ const NOTE_COLORS = [
   { id: 'white', bg: '#FFFFFF', dark: '#1E293B', border: '#E2E8F0' },
 ];
 
+const SPEEDS = [1, 1.5, 2];
+
 function AudioPlayer({ src }) {
   const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
   const audioRef = useRef(null);
 
   const toggle = (e) => {
@@ -25,12 +28,20 @@ function AudioPlayer({ src }) {
       audio.pause();
       setPlaying(false);
     } else {
-      // Reset to start if ended
       if (audio.ended) audio.currentTime = 0;
+      audio.playbackRate = speed;
       audio.play()
         .then(() => setPlaying(true))
         .catch(() => setPlaying(false));
     }
+  };
+
+  const cycleSpeed = (e) => {
+    e.stopPropagation();
+    const nextIdx = (SPEEDS.indexOf(speed) + 1) % SPEEDS.length;
+    const newSpeed = SPEEDS[nextIdx];
+    setSpeed(newSpeed);
+    if (audioRef.current) audioRef.current.playbackRate = newSpeed;
   };
 
   return (
@@ -48,6 +59,9 @@ function AudioPlayer({ src }) {
         {playing ? <Pause size={14} /> : <Play size={14} />}
       </button>
       <span className="audio-label">Nota de voz</span>
+      <button className="audio-speed-btn" onClick={cycleSpeed}>
+        {speed}x
+      </button>
     </div>
   );
 }
@@ -57,6 +71,9 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [form, setForm] = useState({
     title: '', content: '', color: 'yellow', member: '', pinned: false,
     photos: [], documents: [], audios: [], checklist: [],
@@ -122,9 +139,37 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
   };
 
   const handleDelete = (id) => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
     onDelete(id);
     setShowForm(false);
     setEditingNote(null);
+    setConfirmDelete(false);
+  };
+
+  const toggleSelectNote = (id) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    selectedIds.forEach(id => onDelete(id));
+    setSelectedIds([]);
+    setSelectMode(false);
+    setConfirmDelete(false);
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds([]);
+    setConfirmDelete(false);
   };
 
   const handleMemberSelect = (memberId) => {
@@ -275,7 +320,7 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
     return (
       <div className="notes-editor">
         <div className="notes-editor-header">
-          <button className="btn-icon" onClick={() => { setShowForm(false); stopRecording(); }}>
+          <button className="btn-icon" onClick={() => { setShowForm(false); stopRecording(); setConfirmDelete(false); }}>
             <ChevronLeft size={20} />
           </button>
           <h3>{editingNote ? 'Editar nota' : 'Nueva nota'}</h3>
@@ -284,9 +329,15 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
               {form.pinned ? <PinOff size={18} /> : <Pin size={18} />}
             </button>
             {editingNote && (
-              <button className="btn-icon btn-icon-danger" onClick={() => handleDelete(editingNote.id)}>
-                <Trash2 size={18} />
-              </button>
+              confirmDelete ? (
+                <button className="btn-danger-confirm" onClick={() => handleDelete(editingNote.id)}>
+                  Confirmar borrar
+                </button>
+              ) : (
+                <button className="btn-icon btn-icon-danger" onClick={() => handleDelete(editingNote.id)}>
+                  <Trash2 size={18} />
+                </button>
+              )
             )}
             <button className="btn-small" onClick={handleSave}>Guardar</button>
           </div>
@@ -456,15 +507,55 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
   return (
     <div className="notes-view">
       <div className="notes-header">
-        <h3>Notas</h3>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="btn-icon-header" onClick={() => { setShowSearch(s => !s); if (showSearch) setSearchQuery(''); }}>
-            {showSearch ? <X size={20} /> : <Search size={20} />}
-          </button>
-          <button className="btn-add-note" onClick={openNew}>
-            <Plus size={18} />
-          </button>
-        </div>
+        {selectMode ? (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button className="btn-icon" onClick={exitSelectMode}>
+                <X size={20} />
+              </button>
+              <h3>{selectedIds.length} seleccionada{selectedIds.length !== 1 ? 's' : ''}</h3>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                className="btn-icon-header"
+                onClick={() => {
+                  if (selectedIds.length === sortedNotes.length) setSelectedIds([]);
+                  else setSelectedIds(sortedNotes.map(n => n.id));
+                }}
+              >
+                <CheckSquare size={20} />
+              </button>
+              {selectedIds.length > 0 && (
+                confirmDelete ? (
+                  <button className="btn-danger-confirm" onClick={handleBulkDelete}>
+                    Confirmar ({selectedIds.length})
+                  </button>
+                ) : (
+                  <button className="btn-icon-header btn-icon-danger-header" onClick={handleBulkDelete}>
+                    <Trash2 size={20} />
+                  </button>
+                )
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <h3>Notas</h3>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {sortedNotes.length > 0 && (
+                <button className="btn-icon-header" onClick={() => setSelectMode(true)}>
+                  <CheckSquare size={20} />
+                </button>
+              )}
+              <button className="btn-icon-header" onClick={() => { setShowSearch(s => !s); if (showSearch) setSearchQuery(''); }}>
+                {showSearch ? <X size={20} /> : <Search size={20} />}
+              </button>
+              <button className="btn-add-note" onClick={openNew}>
+                <Plus size={18} />
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {showSearch && (
@@ -504,15 +595,21 @@ export default function NotesView({ notes, onAdd, onUpdate, onDelete }) {
             return (
               <div
                 key={note.id}
-                className="note-card"
+                className={`note-card ${selectMode && selectedIds.includes(note.id) ? 'note-card-selected' : ''}`}
                 style={{
                   '--note-bg-light': color.bg,
                   '--note-bg-dark': color.dark,
-                  borderColor: color.border,
+                  borderColor: selectedIds.includes(note.id) ? 'var(--accent)' : color.border,
                 }}
-                onClick={() => openEdit(note)}
+                onClick={() => selectMode ? toggleSelectNote(note.id) : openEdit(note)}
+                onContextMenu={(e) => { e.preventDefault(); if (!selectMode) { setSelectMode(true); setSelectedIds([note.id]); } }}
               >
-                {note.pinned && <span className="note-pin">📌</span>}
+                {selectMode && (
+                  <span className="note-select-check">
+                    {selectedIds.includes(note.id) ? <CheckSquare size={18} className="checklist-checked" /> : <Square size={18} />}
+                  </span>
+                )}
+                {!selectMode && note.pinned && <span className="note-pin">📌</span>}
                 {note.title && <h4 className="note-card-title">{note.title}</h4>}
                 {note.content && <p className="note-card-content">{note.content}</p>}
 
