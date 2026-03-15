@@ -1,37 +1,83 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { db } from '../services/firebase';
+import {
+  collection,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  writeBatch,
+} from 'firebase/firestore';
 
-const STORAGE_KEY = 'familia-notes';
+const LOCAL_STORAGE_KEY = 'familia-notes';
 
 export function useNotes() {
-  const [notes, setNotes] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [notes, setNotes] = useState([]);
+  const [loaded, setLoaded] = useState(false);
 
+  // Listen to Firestore notes in real-time
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-  }, [notes]);
+    const unsub = onSnapshot(collection(db, 'notes'), (snapshot) => {
+      const firebaseNotes = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
+      // Sort by updatedAt descending (newest first)
+      firebaseNotes.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+      setNotes(firebaseNotes);
+      setLoaded(true);
+    });
 
-  const addNote = (note) => {
+    return () => unsub();
+  }, []);
+
+  // Migrate localStorage data to Firebase (one-time)
+  useEffect(() => {
+    if (!loaded) return;
+
+    const localNotes = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (localNotes) {
+      const parsed = JSON.parse(localNotes);
+      if (parsed.length > 0 && notes.length === 0) {
+        const batch = writeBatch(db);
+        parsed.forEach(note => {
+          const { id, ...data } = note;
+          const ref = doc(collection(db, 'notes'));
+          batch.set(ref, { ...data, _oldId: id });
+        });
+        batch.commit().then(() => {
+          localStorage.removeItem(LOCAL_STORAGE_KEY);
+          console.log('Notes migrated to Firebase');
+        });
+      } else {
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+      }
+    }
+  }, [loaded]);
+
+  const addNote = useCallback((note) => {
     const newNote = {
       ...note,
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setNotes(prev => [newNote, ...prev]);
-    return newNote;
-  };
+    // Remove undefined values
+    const clean = Object.fromEntries(
+      Object.entries(newNote).filter(([, v]) => v !== undefined)
+    );
+    addDoc(collection(db, 'notes'), clean);
+    return { ...clean, id: 'temp-' + Date.now() };
+  }, []);
 
-  const updateNote = (id, updates) => {
-    setNotes(prev => prev.map(n =>
-      n.id === id ? { ...n, ...updates, updatedAt: new Date().toISOString() } : n
-    ));
-  };
+  const updateNote = useCallback((id, updates) => {
+    const clean = Object.fromEntries(
+      Object.entries({ ...updates, updatedAt: new Date().toISOString() })
+        .filter(([, v]) => v !== undefined)
+    );
+    updateDoc(doc(db, 'notes', id), clean);
+  }, []);
 
-  const deleteNote = (id) => {
-    setNotes(prev => prev.filter(n => n.id !== id));
-  };
+  const deleteNote = useCallback((id) => {
+    deleteDoc(doc(db, 'notes', id));
+  }, []);
 
   return { notes, addNote, updateNote, deleteNote };
 }
