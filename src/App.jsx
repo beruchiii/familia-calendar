@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback } from 'react';
 import { addDays, addWeeks, addMonths } from 'date-fns';
 import Header from './components/Header';
 import SplashScreen from './components/SplashScreen';
-import DailySummary from './components/DailySummary';
 import TodayView from './components/TodayView';
 import DayView from './components/DayView';
 import WeekView from './components/WeekView';
@@ -183,13 +182,6 @@ function App() {
           <FilterBar activeFilters={activeFilters} onToggleFilter={handleToggleFilter} />
 
           <main className="main-content">
-            {view === 'today' && (
-              <DailySummary
-                events={events}
-                notes={notes}
-                onGoToNotes={() => setAppMode('notes')}
-              />
-            )}
             {view === 'today' && (
               <TodayView
                 events={filteredEvents}
